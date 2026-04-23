@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>総合電気回路計算 WebApp</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Roboto+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js for Transient Analysis -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="background-blobs">
+        <div class="blob top-left"></div>
+        <div class="blob bottom-right"></div>
+    </div>
+
+    <!-- 広告枠プレースホルダー（将来用） -->
+    <div class="ad-space header-ad">
+        <p>広告エリア (728x90)</p>
+    </div>
+
+    <main class="glass-container app-container">
+        <header style="display:flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+            <div>
+                <h1><i class="fa-solid fa-microchip"></i> 総合電気回路計算WebApp</h1>
+                <p class="subtitle">エンジニア・学生向け 高速リアルタイム回路シミュレータ</p>
+            </div>
+            <div id="auth-container" style="display:flex; gap: 10px; align-items:center;">
+                <button class="btn secondary" id="theme-toggle" title="テーマ切り替え"><i class="fa-solid fa-moon"></i></button>
+                <button class="btn secondary" id="auth-login-btn"><i class="fa-solid fa-user"></i> ログイン / 登録</button>
+                <div id="auth-user-info" style="display:none; align-items:center; gap: 10px;">
+                    <span id="auth-username-display" style="font-weight:bold; color:var(--text-primary);"></span>
+                    <button class="btn accent" id="auth-logout-btn"><i class="fa-solid fa-right-from-bracket"></i> ログアウト</button>
+                </div>
+            </div>
+        </header>
+
+        <!-- タブナビゲーション -->
+        <nav class="tabs">
+            <button class="tab-btn active" data-target="dc-calc"><i class="fa-solid fa-bolt"></i> オームの法則</button>
+            <button class="tab-btn" data-target="resistor-calc"><i class="fa-solid fa-slash"></i> 合成抵抗</button>
+            <button class="tab-btn" data-target="rlc-calc"><i class="fa-solid fa-wave-square"></i> RLC回路</button>
+            <button class="tab-btn placeholder" data-target="schematic-tool"><i class="fa-solid fa-pen-ruler"></i> 回路図作成(準備中)</button>
+        </nav>
+
+        <section class="tab-content active" id="dc-calc">
+            <h2>オームの法則・直流電力</h2>
+            <p class="instruction">任意の2つの値を入力すると、残りの2つが瞬時に計算されます。</p>
+            
+            <div class="input-grid form-group">
+                <div class="input-card input-v">
+                    <label for="dc-v">電圧 V (Volts)</label>
+                    <input type="number" id="dc-v" placeholder="例: 12" step="any">
+                </div>
+                <div class="input-card input-i">
+                    <label for="dc-i">電流 I (Amps)</label>
+                    <input type="number" id="dc-i" placeholder="例: 2" step="any">
+                </div>
+                <div class="input-card input-r">
+                    <label for="dc-r">抵抗 R (Ohm)</label>
+                    <input type="number" id="dc-r" placeholder="例: 6" step="any">
+                </div>
+                <div class="input-card input-p">
+                    <label for="dc-p">電力 P (Watts)</label>
+                    <input type="number" id="dc-p" placeholder="例: 24" step="any">
+                </div>
+            </div>
+
+            <div class="error-msg" id="dc-error"></div>
+            
+            <div class="action-row">
+                <button class="btn secondary" id="dc-clear">クリア</button>
+            </div>
+        </section>
+
+        <section class="tab-content" id="resistor-calc">
+            <h2>抵抗の合成計算</h2>
+            <p class="instruction">抵抗値を入力して追加ボタンを押すと、自動的に直列・並列の合成結果を表示します。</p>
+            
+            <div class="resistor-input-row form-group">
+                <input type="number" id="new-resistor" placeholder="抵抗値 (Ohm)" step="any">
+                <button class="btn primary" id="add-resistor"><i class="fa-solid fa-plus"></i> 追加</button>
+            </div>
+            
+            <div class="resistor-list-container">
+                <h3>現在の抵抗リスト</h3>
+                <ul id="resistor-list"></ul>
+            </div>
+
+            <div class="results-grid">
+                <div class="result-card">
+                    <h4>直列合成 <i class="fa-solid fa-link"></i></h4>
+                    <div class="result-value"><span id="series-result">0.00</span> Ω</div>
+                </div>
+                <div class="result-card">
+                    <h4>並列合成 <i class="fa-solid fa-grip-lines"></i></h4>
+                    <div class="result-value"><span id="parallel-result">0.00</span> Ω</div>
+                </div>
+            </div>
+            <div class="action-row mt-3">
+                <button class="btn secondary" id="resistor-clear">リストをクリア</button>
+            </div>
+        </section>
+
+        <section class="tab-content" id="rlc-calc">
+            <h2>RLC直列回路インピーダンス・共振</h2>
+            <p class="instruction">R, L, C, 周波数を入力すると、インピーダンスと位相角、共振周波数が計算されます。</p>
+            
+            <div class="input-grid form-group">
+                <div class="input-card">
+                    <label for="rlc-r">抵抗 R (Ω)</label>
+                    <input type="number" id="rlc-r" placeholder="例: 100" step="any">
+                </div>
+                <div class="input-card">
+                    <label for="rlc-l">インダクタンス L (mH)</label>
+                    <input type="number" id="rlc-l" placeholder="例: 10" step="any">
+                </div>
+                <div class="input-card">
+                    <label for="rlc-c">静電容量 C (μF)</label>
+                    <input type="number" id="rlc-c" placeholder="例: 1" step="any">
+                </div>
+                <div class="input-card">
+                    <label for="rlc-f">周波数 f (Hz)</label>
+                    <input type="number" id="rlc-f" placeholder="例: 1000" step="any">
+                </div>
+            </div>
+
+            <div class="results-grid rlc-results">
+                <div class="result-card">
+                    <h4>インピーダンス |Z|</h4>
+                    <div class="result-value"><span id="rlc-z">---</span> Ω</div>
+                </div>
+                <div class="result-card">
+                    <h4>位相角 θ</h4>
+                    <div class="result-value"><span id="rlc-phase">---</span> °</div>
+                </div>
+                <div class="result-card highlight-card">
+                    <h4>共振周波数 f0</h4>
+                    <div class="result-value"><span id="rlc-f0">---</span> Hz</div>
+                </div>
+            </div>
+        </section>
+
+        <section class="tab-content" id="schematic-tool">
+            <h2><i class="fa-solid fa-pen-ruler"></i> 回路図描画・ネットリスト生成</h2>
+            <div class="instruction" style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 10px;">
+                <span>部品をドラッグ＆配線。 (R: 回転, Del: 削除, 右ドラッグ: 移動, ホイール: ズーム)</span>
+                <span class="action-row" style="gap:10px;">
+                    <button class="btn accent" id="schematic-save-db-btn" style="display:none;"><i class="fa-solid fa-cloud-arrow-up"></i> クラウド保存</button>
+                    <button class="btn accent" id="schematic-load-db-btn" style="display:none;"><i class="fa-solid fa-cloud-arrow-down"></i> クラウド読込</button>
+                    <button class="btn secondary" id="schematic-export-spice-btn" title="PSpice等へのエクスポート"><i class="fa-solid fa-file-export"></i> SPICE出力</button>
+                    <button class="btn secondary" id="schematic-save-btn"><i class="fa-solid fa-download"></i> PC保存</button>
+                    <button class="btn secondary" id="schematic-load-btn"><i class="fa-solid fa-folder-open"></i> PC読込</button>
+                    <input type="file" id="schematic-load-input" style="display:none;" accept=".json">
+                </span>
+            </div>
+            
+            <div class="schematic-app">
+                <!-- パレット (部品を選択) -->
+                <div class="schematic-palette">
+                    <h4>コンポーネント</h4>
+                    <div class="palette-item" draggable="true" data-type="resistor">
+                        <i class="fa-solid fa-slash"></i> 抵抗 (Resistor)
+                    </div>
+                    <div class="palette-item" draggable="true" data-type="voltage">
+                        <i class="fa-solid fa-battery-full"></i> 直流電源 (DC)
+                    </div>
+                    <div class="palette-item" draggable="true" data-type="capacitor">
+                        <i class="fa-solid fa-pause"></i> コンデンサ (Cap)
+                    </div>
+                    <div class="palette-item" draggable="true" data-type="inductor">
+                        <i class="fa-solid fa-wave-square"></i> インダクタ (Ind)
+                    </div>
+                    <div class="palette-item" draggable="true" data-type="opamp">
+                        <i class="fa-solid fa-play"></i> オペアンプ (OpAmp)
+                    </div>
+                    <div class="palette-item" draggable="true" data-type="switch">
+                        <i class="fa-solid fa-toggle-off"></i> スイッチ (Switch)
+                    </div>
+                    <div class="palette-item" draggable="true" data-type="ground">
+                        <i class="fa-solid fa-earth-americas"></i> GND
+                    </div>
+                    <div class="palette-item" draggable="true" data-type="voltmeter" style="border: 1px solid #f59e0b; color: #f59e0b;">
+                        <i class="fa-solid fa-v"></i> 電圧計
+                    </div>
+                    <div class="palette-item" draggable="true" data-type="ammeter" style="border: 1px solid #3b82f6; color: #3b82f6;">
+                        <i class="fa-solid fa-a"></i> 電流計
+                    </div>
+                    <div class="palette-item" draggable="true" data-type="text" style="border: 1px solid #a855f7; color: #a855f7;">
+                        <i class="fa-solid fa-font"></i> テキスト (メモ)
+                    </div>
+                </div>
+
+                <!-- キャンバス -->
+                <div class="schematic-canvas-container" id="canvas-container">
+                    <svg id="schematic-svg" width="100%" height="100%">
+                        <defs>
+                            <pattern id="gridPattern" width="20" height="20" patternUnits="userSpaceOnUse">
+                                <circle cx="10" cy="10" r="1.5" fill="rgba(255,255,255,0.15)"></circle>
+                            </pattern>
+                        </defs>
+                        <g id="workspace">
+                            <!-- 背景無制限化対応 -->
+                            <rect width="10000" height="10000" x="-5000" y="-5000" fill="url(#gridPattern)" pointer-events="all"></rect>
+                            <g id="wires-layer"></g>
+                            <g id="components-layer"></g>
+                            <g id="sim-layer"></g>
+                        </g>
+                    </svg>
+                </div>
+
+                <!-- プロパティインスペクタ (Phase 10) -->
+                <div class="schematic-inspector" id="inspector-panel" style="display:none; width: 250px; background: var(--glass-bg); border-left: 1px solid var(--glass-border); padding: 1rem; flex-direction: column; overflow-y: auto;">
+                    <h4 id="inspector-title" style="margin-top:0; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:5px;">プロパティ</h4>
+                    <div class="form-group" style="margin-top: 1rem;">
+                        <label for="inspector-val">設定値 (例: 10, 1k, 5m)</label>
+                        <input type="text" id="inspector-val" class="modal-input" placeholder="Value">
+                    </div>
+                    <div class="action-row" style="margin-top: 1.5rem; flex-direction: column; gap: 0.5rem;">
+                        <button class="btn secondary" id="inspector-rotate" style="width: 100%;"><i class="fa-solid fa-rotate-right"></i> 90° 回転 (R)</button>
+                        <button class="btn secondary" id="inspector-delete" style="width: 100%; color: #ef4444; border-color: #ef4444;"><i class="fa-solid fa-trash"></i> 削除 (Del)</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="action-row mt-3">
+                <button class="btn secondary" id="schematic-clear"><i class="fa-solid fa-trash"></i> キャンバスをクリア</button>
+                <button class="btn primary" id="run-simulation"><i class="fa-solid fa-play"></i> シミュレーション実行</button>
+            </div>
+            
+            <!-- 生成されたネットリスト表示部 (デバッグ兼任) -->
+            <div id="netlist-output-container" style="display: none; margin-top: 1rem;">
+                <h4>シミュレーション結果 (ネットリスト＆ソルバ出力)</h4>
+                <pre id="netlist-output" style="background: rgba(0,0,0,0.3); padding: 1rem; border-radius: 8px; font-family: monospace; font-size: 0.9rem; overflow-x: auto;"></pre>
+            </div>
+
+            <!-- グラフ描画領域 (Phase 5) -->
+            <div id="graph-container" style="display: none; margin-top: 1rem; background: var(--glass-bg); padding: 1rem; border-radius: 12px; border: 1px solid var(--glass-border);">
+                <h4>過渡解析グラフ (オシロスコープ出力)</h4>
+                <div style="position: relative; height: 300px; width: 100%;">
+                    <canvas id="sim-chart"></canvas>
+                </div>
+                <div class="action-row mt-3" style="justify-content: flex-start; gap: 10px;">
+                    <button class="btn secondary" id="export-png-btn"><i class="fa-solid fa-image"></i> PNGで保存</button>
+                    <button class="btn secondary" id="export-csv-btn"><i class="fa-solid fa-file-csv"></i> CSVで保存</button>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Auth Modal -->
+    <div class="modal-overlay" id="auth-modal">
+        <div class="modal-content glass-container" style="max-width: 400px;">
+            <h3 id="auth-modal-title">ログイン / 新規登録</h3>
+            <div class="tabs" style="margin-top:1rem; padding-bottom: 0;">
+                <button class="tab-btn active" id="tab-login" style="flex:1;">ログイン</button>
+                <button class="tab-btn" id="tab-register" style="flex:1;">新規登録</button>
+            </div>
+            <div class="form-group" style="margin-top: 1rem;">
+                <label for="auth-username-input">ユーザー名</label>
+                <input type="text" id="auth-username-input" class="modal-input" placeholder="名前を入力">
+                <label for="auth-password-input" style="margin-top: 0.5rem;">パスワード</label>
+                <input type="password" id="auth-password-input" class="modal-input" placeholder="パスワード">
+            </div>
+            <p id="auth-error-msg" style="color: #ef4444; margin-top: 0.5rem; font-size:0.9rem; display:none;"></p>
+            <div class="modal-actions" style="margin-top: 1.5rem; display: flex; gap: 1rem; justify-content:flex-end;">
+                <button class="btn secondary" id="auth-modal-cancel">キャンセル</button>
+                <button class="btn primary" id="auth-modal-submit">送信</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- DB Circuits Modal -->
+    <div class="modal-overlay" id="db-circuits-modal">
+        <div class="modal-content glass-container" style="max-width: 500px; max-height: 80vh; display:flex; flex-direction:column;">
+            <h3>クラウド保存データ一覧</h3>
+            <div id="db-circuits-list" style="margin-top: 1rem; flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:0.5rem;">
+                <p>読み込み中...</p>
+            </div>
+            <div class="modal-actions" style="margin-top: 1.5rem; display: flex; justify-content:flex-end;">
+                <button class="btn secondary" id="db-circuits-close">閉じる</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- サイドバー広告枠 -->
+    <aside class="ad-space side-ad">
+        <p>広告エリア<br>(160x600)</p>
+    </aside>
+
+    <script src="js/calc.js?v=2"></script>
+    <script src="js/app.js?v=2"></script>
+    <script src="js/schematic.js?v=2"></script>
+</body>
+</html>
